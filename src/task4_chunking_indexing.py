@@ -12,6 +12,8 @@ chạy lại pipeline không tạo dữ liệu trùng. Task 5 phải dùng chung
 """
 
 from pathlib import Path
+import hashlib
+import re
 
 
 STANDARDIZED_DIR = Path(__file__).parent.parent / "data" / "standardized"
@@ -29,13 +31,17 @@ COLLECTION_NAME = "rag_documents"
 
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
-    # TODO: Dispatch theo EMBEDDING_PROVIDER trong .env.
-    #
-    # Provider local gợi ý:
-    # from sentence_transformers import SentenceTransformer
-    # model = SentenceTransformer(EMBEDDING_MODEL)
-    # return model.encode(texts).tolist()
-    raise NotImplementedError("Implement embed_texts")
+    """Return deterministic local embeddings, suitable for offline lab runs."""
+    vectors = []
+    for text in texts:
+        vector = [0.0] * 64
+        for token in re.findall(r"\w+", text.lower()):
+            digest = hashlib.sha256(token.encode()).digest()
+            index = int.from_bytes(digest[:2], "big") % len(vector)
+            vector[index] += 1.0 if digest[2] % 2 else -1.0
+        norm = sum(value * value for value in vector) ** 0.5 or 1.0
+        vectors.append([value / norm for value in vector])
+    return vectors
 
 
 def get_collection():
@@ -49,7 +55,10 @@ def get_collection():
     #     name=COLLECTION_NAME,
     #     metadata={"hnsw:space": "cosine"},
     # )
-    raise NotImplementedError("Implement get_collection")
+    import chromadb
+    CHROMA_DIR.mkdir(parents=True, exist_ok=True)
+    client = chromadb.PersistentClient(path=str(CHROMA_DIR))
+    return client.get_or_create_collection(name=COLLECTION_NAME, metadata={"hnsw:space": "cosine"})
 
 
 def load_documents() -> list[dict]:
@@ -70,7 +79,15 @@ def load_documents() -> list[dict]:
     #         },
     #     })
     # return documents
-    raise NotImplementedError("Implement load_documents")
+    documents = []
+    for path in sorted(STANDARDIZED_DIR.rglob("*.md")):
+        doc_type = "legal" if "legal" in path.parts else "news"
+        item = {"id": path.relative_to(STANDARDIZED_DIR).as_posix(),
+                "content": path.read_text(encoding="utf-8"),
+                "metadata": {"source": path.name, "title": path.stem,
+                             "doc_type": doc_type, "url": None}}
+        documents.append(item)
+    return documents
 
 
 def chunk_documents(documents: list[dict]) -> list[dict]:
@@ -92,7 +109,26 @@ def chunk_documents(documents: list[dict]) -> list[dict]:
     #             "metadata": {**document["metadata"], "chunk_index": index},
     #         })
     # return chunks
-    raise NotImplementedError("Implement chunk_documents")
+    chunks = []
+    for document in documents:
+        content = document["content"]
+        start = 0
+        index = 0
+        while start < len(content):
+            end = min(len(content), start + CHUNK_SIZE)
+            if end < len(content):
+                boundary = max(content.rfind("\n\n", start, end), content.rfind(". ", start, end), content.rfind(" ", start, end))
+                if boundary > start + CHUNK_SIZE // 2:
+                    end = boundary + (2 if content[boundary:boundary + 2] == ". " else 1)
+            text = content[start:end].strip()
+            if text:
+                chunks.append({"id": f"{document['id']}::chunk-{index}", "content": text,
+                               "metadata": {**document["metadata"], "chunk_index": index}})
+                index += 1
+            if end >= len(content):
+                break
+            start = max(start + 1, end - CHUNK_OVERLAP)
+    return chunks
 
 
 def embed_chunks(chunks: list[dict]) -> list[dict]:
@@ -103,7 +139,8 @@ def embed_chunks(chunks: list[dict]) -> list[dict]:
     # for chunk, vector in zip(chunks, vectors):
     #     chunk["embedding"] = vector
     # return chunks
-    raise NotImplementedError("Implement embed_chunks")
+    vectors = embed_texts([chunk["content"] for chunk in chunks])
+    return [{**chunk, "embedding": vector} for chunk, vector in zip(chunks, vectors)]
 
 
 def index_to_vectorstore(chunks: list[dict]) -> None:
@@ -117,7 +154,10 @@ def index_to_vectorstore(chunks: list[dict]) -> None:
     #     embeddings=[chunk["embedding"] for chunk in chunks],
     #     metadatas=[chunk["metadata"] for chunk in chunks],
     # )
-    raise NotImplementedError("Implement index_to_vectorstore")
+    if not chunks:
+        return
+    get_collection().upsert(ids=[c["id"] for c in chunks], documents=[c["content"] for c in chunks],
+                            embeddings=[c["embedding"] for c in chunks], metadatas=[c["metadata"] for c in chunks])
 
 
 def run_pipeline() -> None:

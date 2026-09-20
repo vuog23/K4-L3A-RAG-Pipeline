@@ -13,7 +13,11 @@ Nếu context không đủ hoặc provider lỗi, trả safe refusal; không b�
 
 import os
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    def load_dotenv():
+        return False
 
 from .task9_retrieval_pipeline import retrieve
 
@@ -40,7 +44,9 @@ def reorder_for_llm(chunks: list[dict]) -> list[dict]:
     # front = chunks[::2]
     # back = chunks[1::2]
     # return front + back[::-1]
-    raise NotImplementedError("Implement reorder_for_llm")
+    if len(chunks) <= 2:
+        return list(chunks)
+    return list(chunks[::2]) + list(chunks[1::2])[::-1]
 
 
 def format_context(chunks: list[dict]) -> str:
@@ -55,7 +61,10 @@ def format_context(chunks: list[dict]) -> str:
     #         f"Source: {metadata['source']}]\n{chunk['content']}"
     #     )
     # return "\n\n---\n\n".join(parts)
-    raise NotImplementedError("Implement format_context")
+    return "\n\n---\n\n".join(
+        f"[Document {index} | Title: {item['metadata']['title']} | Source: {item['metadata']['source']}]\n{item['content']}"
+        for index, item in enumerate(chunks, 1)
+    )
 
 
 def call_llm(system_prompt: str, user_message: str) -> str:
@@ -67,7 +76,12 @@ def call_llm(system_prompt: str, user_message: str) -> str:
     # - anthropic -> ANTHROPIC_API_KEY
     #
     # Dùng LLM_MODEL và trả về text thuần cho cả ba nhánh.
-    raise NotImplementedError("Implement call_llm")
+    if LLM_PROVIDER == "openai":
+        from openai import OpenAI
+        response = OpenAI(api_key=os.getenv("OPENAI_API_KEY")).chat.completions.create(
+            model=LLM_MODEL or "gpt-4o-mini", messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_message}], temperature=TEMPERATURE)
+        return response.choices[0].message.content or ""
+    raise RuntimeError(f"Unsupported or unconfigured LLM provider: {LLM_PROVIDER}")
 
 
 def generate_with_citation(query: str, top_k: int = TOP_K) -> dict:
@@ -90,7 +104,16 @@ def generate_with_citation(query: str, top_k: int = TOP_K) -> dict:
     #     "sources": chunks,
     #     "retrieval_source": chunks[0]["retrieval_method"],
     # }
-    raise NotImplementedError("Implement generate_with_citation")
+    chunks = retrieve(query, top_k=top_k)
+    refusal = "I cannot verify this information from the available sources."
+    if not chunks:
+        return {"answer": refusal, "sources": [], "retrieval_source": "none"}
+    try:
+        answer = call_llm(SYSTEM_PROMPT, f"Context:\n{format_context(reorder_for_llm(chunks))}\n\nQuestion: {query}")
+    except Exception:
+        answer = refusal
+    source = chunks[0]["retrieval_method"]
+    return {"answer": answer or refusal, "sources": chunks, "retrieval_source": "pageindex" if source == "pageindex" else "hybrid"}
 
 
 if __name__ == "__main__":

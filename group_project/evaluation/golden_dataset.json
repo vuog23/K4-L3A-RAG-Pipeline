@@ -1,0 +1,17 @@
+[
+{"question":"How is tuition assessed?","expected_answer":"Tuition is assessed per semester.","expected_context":"Tuition is assessed per semester."},
+{"question":"When should an installment request be submitted?","expected_answer":"Before the deadline.","expected_context":"Installment requests must be submitted before the deadline."},
+{"question":"What can late tuition payment cause?","expected_answer":"A registration hold.","expected_context":"Late payment may place a registration hold."},
+{"question":"When are scholarship forms due?","expected_answer":"Before the deadline.","expected_context":"Applicants submit scholarship forms before the published deadline."},
+{"question":"Is scholarship renewal automatic?","expected_answer":"No.","expected_context":"Renewal is not automatic."},
+{"question":"What must scholarship recipients satisfy?","expected_answer":"Academic progress requirements.","expected_context":"Recipients must satisfy academic progress requirements."},
+{"question":"What is required at residence check-in?","expected_answer":"Identification and a signed agreement.","expected_context":"Check-in requires identification and a signed residence agreement."},
+{"question":"What must residents protect?","expected_answer":"Access cards.","expected_context":"Residents protect access cards."},
+{"question":"What is required at residence checkout?","expected_answer":"Returning keys.","expected_context":"Checkout requires returning keys."},
+{"question":"What should students check before registration?","expected_answer":"Prerequisites and timetable.","expected_context":"Students should check prerequisites and confirm timetables."},
+{"question":"How can students reserve library rooms?","expected_answer":"Through the library portal.","expected_context":"Students reserve rooms through the library portal."},
+{"question":"What do career workshops cover?","expected_answer":"CVs, interviews, internships, and networking.","expected_context":"Sessions cover CV preparation, interviews, internships, and networking."},
+{"question":"Are wellbeing appointments confidential?","expected_answer":"Yes.","expected_context":"Student wellbeing services offer confidential appointments."},
+{"question":"What does the proposal clinic review?","expected_answer":"Research questions, plans, budgets, and documentation.","expected_context":"The clinic provides feedback on research questions, project plans, budgets, and documentation."},
+{"question":"Where are registration notices published?","expected_answer":"By the registrar and in the student portal.","expected_context":"The registrar publishes registration guidance and notices."}
+]

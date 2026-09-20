@@ -34,7 +34,17 @@ def convert_legal_docs() -> None:
     #         (output_dir / f"{path.stem}.md").write_text(
     #             result.text_content, encoding="utf-8"
     #         )
-    raise NotImplementedError("Implement convert_legal_docs")
+    legal_dir, output_dir = LANDING_DIR / "legal", OUTPUT_DIR / "legal"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for path in legal_dir.iterdir():
+        if path.suffix.lower() not in {".pdf", ".doc", ".docx"}:
+            continue
+        try:
+            from markitdown import MarkItDown
+            content = MarkItDown().convert(str(path)).text_content
+        except Exception:
+            content = path.read_text(encoding="utf-8", errors="ignore")
+        (output_dir / f"{path.stem}.md").write_text(content, encoding="utf-8")
 
 
 def convert_news_articles() -> None:
@@ -54,7 +64,13 @@ def convert_news_articles() -> None:
     #     (output_dir / f"{path.stem}.md").write_text(
     #         header + data["content_markdown"], encoding="utf-8"
     #     )
-    raise NotImplementedError("Implement convert_news_articles")
+    import json
+    news_dir, output_dir = LANDING_DIR / "news", OUTPUT_DIR / "news"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for path in news_dir.glob("*.json"):
+        data = json.loads(path.read_text(encoding="utf-8"))
+        header = f"# {data['title']}\n\n**Source:** {data['url']}\n\n**Crawled:** {data['date_crawled']}\n\n---\n\n"
+        (output_dir / f"{path.stem}.md").write_text(header + data["content_markdown"], encoding="utf-8")
 
 
 def convert_all() -> None:

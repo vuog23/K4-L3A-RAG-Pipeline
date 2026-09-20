@@ -16,7 +16,11 @@ def build_bm25_index(corpus: list[dict]):
     # from rank_bm25 import BM25Okapi
     # tokenized = [item["content"].lower().split() for item in corpus]
     # return BM25Okapi(tokenized)
-    raise NotImplementedError("Implement build_bm25_index")
+    try:
+        from rank_bm25 import BM25Okapi
+        return BM25Okapi([item["content"].lower().split() for item in corpus])
+    except ImportError:
+        return None
 
 
 def lexical_search(query: str, top_k: int = 10) -> list[dict]:
@@ -40,7 +44,17 @@ def lexical_search(query: str, top_k: int = 10) -> list[dict]:
     #         "retrieval_method": "bm25",
     #     })
     # return results
-    raise NotImplementedError("Implement lexical_search")
+    if top_k <= 0 or not CORPUS:
+        return []
+    index = build_bm25_index(CORPUS)
+    tokens = query.lower().split()
+    if index is not None:
+        scores = list(index.get_scores(tokens))
+    else:
+        scores = [sum(text.lower().split().count(token) for token in tokens) for text in [x["content"] for x in CORPUS]]
+    order = sorted(range(len(CORPUS)), key=lambda i: (-scores[i], i))
+    return [{"id": CORPUS[i]["id"], "content": CORPUS[i]["content"], "score": float(scores[i]),
+             "metadata": CORPUS[i]["metadata"], "retrieval_method": "bm25"} for i in order[:top_k] if scores[i] > 0]
 
 
 if __name__ == "__main__":

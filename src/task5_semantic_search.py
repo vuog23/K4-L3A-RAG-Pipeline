@@ -33,7 +33,15 @@ def semantic_search(query: str, top_k: int = 10) -> list[dict]:
     #         "retrieval_method": "dense",
     #     })
     # return sorted(results, key=lambda item: item["score"], reverse=True)[:top_k]
-    raise NotImplementedError("Implement semantic_search")
+    if top_k <= 0:
+        return []
+    response = get_collection().query(query_embeddings=[embed_texts([query])[0]], n_results=top_k,
+                                       include=["documents", "metadatas", "distances"])
+    rows = zip(response.get("ids", [[]])[0], response.get("documents", [[]])[0],
+               response.get("metadatas", [[]])[0], response.get("distances", [[]])[0])
+    results = [{"id": item_id, "content": content, "score": max(0.0, 1.0 - float(distance)),
+                "metadata": metadata, "retrieval_method": "dense"} for item_id, content, metadata, distance in rows]
+    return sorted(results, key=lambda item: item["score"], reverse=True)[:top_k]
 
 
 if __name__ == "__main__":

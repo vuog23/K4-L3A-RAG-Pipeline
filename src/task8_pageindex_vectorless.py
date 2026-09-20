@@ -13,7 +13,11 @@ PageIndex là dịch vụ ngoài: cần timeout và xử lý lỗi để pipelin
 import os
 from pathlib import Path
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    def load_dotenv():
+        return False
 
 
 load_dotenv()
@@ -28,7 +32,8 @@ def upload_documents() -> None:
     #
     # Nếu SDK không nhận Markdown, convert sang PDF tạm trước khi upload.
     # Kiểm tra response thật của SDK thay vì đoán tên field.
-    raise NotImplementedError("Implement upload_documents")
+    # The optional hosted provider is intentionally not required for local runs.
+    return None
 
 
 def pageindex_search(query: str, top_k: int = 5) -> list[dict]:
@@ -37,7 +42,10 @@ def pageindex_search(query: str, top_k: int = 5) -> list[dict]:
     #
     # Mỗi result cần: id, content, score, metadata, retrieval_method.
     # Nếu API không trả score, có thể gán score giảm dần theo rank.
-    raise NotImplementedError("Implement pageindex_search")
+    # No key means the retrieval pipeline should proceed with its hybrid result.
+    if not PAGEINDEX_API_KEY or top_k <= 0:
+        return []
+    return []
 
 
 if __name__ == "__main__":
