@@ -1,60 +1,53 @@
-# RAG evaluation results
+# RAG Evaluation Results
 
-## Run information
+## Evaluation status
 
-| Field                              | Value |
-| ---------------------------------- | ----- |
-| Evaluation date                    | TODO  |
-| Framework and version              | TODO  |
-| Evaluator model                    | TODO  |
-| Generator model                    | TODO  |
-| Embedding model                    | TODO  |
-| Corpus version/commit              | TODO  |
-| Golden dataset size                | TODO  |
-| `top_k`                            | TODO  |
-| Fallback threshold and calibration | TODO  |
+No scored evaluation run is present in this repository. The repository contains a 15-question golden set, but it does not contain a recorded run artifact, metric calculation output, or a reproducible evaluator configuration. Therefore, this report does not claim numeric scores or an A/B winner. The earlier numeric figures in this file had no supporting run output and have been removed.
 
-## Configurations
+## Available evaluation inputs
 
-- **Config A — dense-only:** TODO
-- **Config B — hybrid + RRF:** TODO
+| Field | Recorded value |
+| --- | --- |
+| Golden dataset | `group_project/evaluation/golden_dataset.json` |
+| Dataset size | 15 questions |
+| Corpus | 3 policy Markdown documents and 5 news Markdown documents under `data/standardized/` |
+| Retrieval top-k | Pipeline default is 5 |
+| Dense implementation | Deterministic local token-hash embeddings (64 dimensions) with cosine similarity |
+| Sparse implementation | BM25 when `rank-bm25` is installed; token-count fallback otherwise |
+| Hybrid implementation | Reciprocal Rank Fusion over dense and sparse result lists |
+| Generator/evaluator | No successful evaluation run or fixed model/version recorded |
+| Evaluation date / corpus commit | Not recorded |
 
-Hai config phải dùng cùng golden dataset, generator, evaluator, prompt và `top_k`; chỉ thay retrieval strategy.
+The configured string `BAAI/bge-m3` in the indexing module is not the embedding model used by the current implementation: `embed_texts()` generates deterministic local token-hash vectors. The results must not be described as BGE-M3 results.
 
-## Overall scores
+## Required comparison protocol
 
-| Metric            | Config A | Config B | Delta B−A |
-| ----------------- | -------: | -------: | --------: |
-| Faithfulness      |     TODO |     TODO |      TODO |
-| Answer relevance  |     TODO |     TODO |      TODO |
-| Context recall    |     TODO |     TODO |      TODO |
-| Context precision |     TODO |     TODO |      TODO |
-| **Average**       |     TODO |     TODO |      TODO |
+Run both configurations over the same 15 questions, corpus snapshot, generation prompt, generator, evaluator, and `top_k=5`:
 
-## A/B comparison
+- **A — dense only:** use dense retrieval with RRF disabled.
+- **B — hybrid + RRF:** retrieve dense and BM25 candidates and fuse them once with RRF.
 
-- Cấu hình tốt hơn: TODO
-- Evidence: TODO
-- Trade-off về latency/cost: TODO
+Record per-question faithfulness, answer relevance, context recall, and context precision, along with model names/versions, package versions, run date, corpus commit, threshold, and latency/cost. Report arithmetic means and `B − A` for each metric. Keep the per-question outputs so the three weakest cases and their failure stages can be checked. An out-of-domain refusal case should be assessed separately from answerable questions.
 
-## Worst performers
+## Results
 
-|   # | Question | Config | Faithfulness | Relevance | Recall | Precision | Failure stage             | Root cause |
-| --: | -------- | ------ | -----------: | --------: | -----: | --------: | ------------------------- | ---------- |
-|   1 | TODO     | TODO   |         TODO |      TODO |   TODO |      TODO | retrieval/generation/data | TODO       |
-|   2 | TODO     | TODO   |         TODO |      TODO |   TODO |      TODO | retrieval/generation/data | TODO       |
-|   3 | TODO     | TODO   |         TODO |      TODO |   TODO |      TODO | retrieval/generation/data | TODO       |
+| Metric | A: dense only | B: hybrid + RRF | Delta (B − A) |
+| --- | ---: | ---: | ---: |
+| Faithfulness | Not measured | Not measured | — |
+| Answer relevance | Not measured | Not measured | — |
+| Context recall | Not measured | Not measured | — |
+| Context precision | Not measured | Not measured | — |
+| Average | Not measured | Not measured | — |
 
-## Recommendations
+**A/B conclusion:** Undetermined; no comparable scored run is available. Do not infer that hybrid is better from the implementation alone.
 
-| Priority | Action | Evidence from failure analysis | Expected impact | How to verify |
-| -------: | ------ | ------------------------------ | --------------- | ------------- |
-|        1 | TODO   | TODO                           | TODO            | TODO          |
-|        2 | TODO   | TODO                           | TODO            | TODO          |
-|        3 | TODO   | TODO                           | TODO            | TODO          |
+## Known limitations and next steps
+
+1. Add and run a versioned evaluation script that exports per-question results and aggregate metric means for both configurations.
+2. Record the actual embedding implementation and model configuration; the current local hash vectors are a lightweight offline baseline, not a semantic embedding model.
+3. Check the golden set against the source documents before scoring. The question “Where are registration notices published?” has an expected answer mentioning a student portal, while article 01 only says that the registrar published guidance; the extra portal detail is not supported by the supplied corpus.
+4. Record source URLs and provenance for the corpus before treating it as a production knowledge base; current standardized files do not include URLs.
 
 ## Bonus experiments
 
-| Experiment | Baseline | Metric delta | Latency/cost delta | Conclusion |
-| ---------- | -------- | -----------: | -----------------: | ---------- |
-| TODO       | TODO     |         TODO |               TODO | TODO       |
+No bonus experiment has a recorded measurement. RRF is implemented, but implementation by itself is not evidence of a metric improvement.
